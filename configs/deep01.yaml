@@ -1,0 +1,31 @@
+# Grid & game
+grid_rows: 6
+grid_cols: 7
+connect_k: 4
+max_steps_per_episode: 100
+
+# Training
+num_episodes: 1000000
+batch_size: 512
+gamma: 0.99
+gae_lambda: 0.95
+entropy_coef: 0.01
+value_coef: 0.5
+learning_rate: 0.0003
+seed: 42
+max_grad_norm: 2.0
+opponent_update_interval: 250
+
+# Model architecture
+actor_layers: [512, 256, 64]
+
+# Checkpoint & logging
+save_interval: 1000
+log_interval: 10
+results_dir: "results"
+
+# Evaluation
+eval_episodes: 
+checkpoint: 
+# Device
+use_cuda: true
