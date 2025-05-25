@@ -1,120 +1,76 @@
+import gym
+from gym import spaces
 import numpy as np
-from typing import Tuple, Dict
 
-class ConnectNEnv:
-    """
-    Connect-N environment with reward shaping:
-    - win_reward: reward for winning move
-    - lose_reward: reward for loss or draw
-    - step_reward: reward for non-terminal valid moves
-    - invalid_reward: reward for invalid move
-    - shaping_bonus: small bonus for creating (k-1)-in-a-row
-    """
-    def __init__(
-        self,
-        rows: int,
-        cols: int,
-        k: int,
-        max_steps: int,
-        win_reward: float = 1.0,
-        lose_reward: float = -1.0,
-        step_reward: float = 0.0,
-        invalid_reward: float = -1.0,
-        shaping_bonus: float = 0.1
-    ):
-        self.rows = rows
-        self.cols = cols
-        self.k = k
-        self.max_steps = max_steps
-        # reward parameters
-        self.win_reward = win_reward
-        self.lose_reward = lose_reward
-        self.step_reward = step_reward
-        self.invalid_reward = invalid_reward
-        self.shaping_bonus = shaping_bonus
+class ConnectNEnv(gym.Env):
+    metadata = {'render.modes': ['human']}
+
+    def __init__(self, config):
+        self.rows = config.grid_rows
+        self.cols = config.grid_cols
+        self.k = config.connect_k
+        self.max_steps = config.max_steps_per_episode
+        self.action_space = spaces.Discrete(self.cols)
+        self.observation_space = spaces.Box(
+            low=0, high=2, shape=(self.rows, self.cols), dtype=np.int8)
+        self.seed(config.random_seed)
         self.reset()
 
-    def reset(self, start_player: int = 1) -> np.ndarray:
-        """
-        Reset board and starting player.
-        """
-        self.board = np.zeros((self.rows, self.cols), dtype=int)
-        self.current_player = start_player
+    def seed(self, seed=None):
+        self.np_random, seed = gym.utils.seeding.np_random(seed)
+        return [seed]
+
+    def reset(self):
+        self.board = np.zeros((self.rows, self.cols), dtype=np.int8)
+        self.current_player = 1
+        self.heights = [0] * self.cols
         self.steps = 0
         return self._get_obs()
 
-    def step(self, action: int) -> Tuple[np.ndarray, float, bool, Dict]:
-        """
-        Apply action (drop piece into column). Returns (obs, reward, done, info).
-        """
-        # invalid move if column full
-        if self.board[0, action] != 0:
-            return self._get_obs(), self.invalid_reward, True, {"invalid": True}
-
-        # drop piece
-        for r in range(self.rows-1, -1, -1):
-            if self.board[r, action] == 0:
-                self.board[r, action] = self.current_player
-                placed_r, placed_c = r, action
-                break
-
-        self.steps += 1
-
-        # check win
-        win = self._check_win(placed_r, placed_c)
-        full = np.all(self.board != 0)
-        timeout = self.steps >= self.max_steps
-        done = win or full or timeout
-
-        # reward shaping: bonus for creating (k-1) in a row
-        bonus = 0.0
-        b = self.board
-        p = b[placed_r, placed_c]
-        directions = [(1,0),(0,1),(1,1),(1,-1)]
-        for dr, dc in directions:
-            count = 1
-            for sign in [1, -1]:
-                rr, cc = placed_r + sign*dr, placed_c + sign*dc
-                while 0 <= rr < self.rows and 0 <= cc < self.cols and b[rr, cc] == p:
-                    count += 1
-                    rr += sign*dr
-                    cc += sign*dc
-            if count == self.k - 1:
-                bonus += self.shaping_bonus
-
-        # assign base reward
-        if win:
-            reward = self.win_reward + bonus
-        elif full or timeout:
-            reward = self.lose_reward + bonus
-        else:
-            reward = self.step_reward + bonus
-
-        # switch player
-        self.current_player = 1 if self.current_player == 2 else 2
-        return self._get_obs(), reward, done, {}
-
-    def _get_obs(self) -> np.ndarray:
-        """
-        Return a copy of the board state.
-        """
+    def _get_obs(self):
         return self.board.copy()
 
-    def _check_win(self, r: int, c: int) -> bool:
-        """
-        Check if the last move at (r,c) completed k in a row.
-        """
-        b = self.board
-        p = b[r, c]
-        directions = [(1,0),(0,1),(1,1),(1,-1)]
+    def step(self, action):
+        if self.heights[action] >= self.rows:
+            return self._get_obs(), -10, True, {}
+        row = self.heights[action]
+        self.board[row, action] = self.current_player
+        self.heights[action] += 1
+        self.steps += 1
+
+        done = False
+        reward = 0
+
+        if self._check_win(row, action):
+            done = True
+            reward = 1
+        elif self.steps >= self.max_steps:
+            done = True
+            reward = 0
+        else:
+            self.current_player = 2 if self.current_player == 1 else 1
+
+        return self._get_obs(), reward, done, {}
+
+    def _check_win(self, row, col):
+        board = self.board
+        player = board[row, col]
+        directions = [(1,0), (0,1), (1,1), (1,-1)]
         for dr, dc in directions:
             count = 1
-            for sign in [1, -1]:
-                rr, cc = r + sign*dr, c + sign*dc
-                while 0 <= rr < self.rows and 0 <= cc < self.cols and b[rr, cc] == p:
-                    count += 1
-                    rr += sign*dr
-                    cc += sign*dc
+            for dir in [1, -1]:
+                r, c = row, col
+                while True:
+                    r += dr * dir
+                    c += dc * dir
+                    if (0 <= r < self.rows and 0 <= c < self.cols and
+                       board[r, c] == player):
+                        count += 1
+                    else:
+                        break
             if count >= self.k:
                 return True
         return False
+
+    def render(self, mode='human'):
+        print(self.board[::-1])

@@ -1,14 +1,16 @@
-import argparse
 import yaml
-from typing import Any, Dict
+from types import SimpleNamespace
 
-def load_config() -> Dict[str, Any]:
-    parser = argparse.ArgumentParser(description="Connect-N RL")
-    parser.add_argument(
-        "--config", type=str, default="configs/default.yaml",
-        help="Path to YAML config file"
-    )
-    args, _ = parser.parse_known_args()
-    with open(args.config, "r") as f:
-        cfg = yaml.safe_load(f)
-    return cfg
+def dict_to_namespace(d):
+    ns = SimpleNamespace()
+    for k, v in d.items():
+        if isinstance(v, dict):
+            setattr(ns, k, dict_to_namespace(v))
+        else:
+            setattr(ns, k, v)
+    return ns
+
+def load_config(path):
+    with open(path) as f:
+        cfg_dict = yaml.safe_load(f)
+    return dict_to_namespace(cfg_dict)

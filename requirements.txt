@@ -1,4 +1,5 @@
 torch
+gym
 pyyaml
 tensorboard
-matplotlib
+pytest

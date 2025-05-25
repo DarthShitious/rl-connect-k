@@ -1,55 +1,23 @@
-# ===================================================================
-# configs/mlp01.yaml
-# ===================================================================
-# General settings
-seed: 42
-use_cuda: true
+num_episodes: 10000
+batch_size: 32
+evaluate_every: 500
+random_seed: 42
 
-# Output & logging
-results_dir: "results"
-log_interval: 128
-save_interval: 1024
-eval_episodes: 100
+grid_rows: 6
+grid_cols: 7
+connect_k: 4
+max_steps_per_episode: 42
 
-# Model
-model_type: "mlp"              # "mlp" or "transformer"
-actor_layers: [128, 128]       # hidden dims for MLP policy/value trunk
+agent_type: dqn
+dqn:
+  lr: 0.001
+  gamma: 0.99
+  epsilon_start: 1.0
+  epsilon_end: 0.1
+  epsilon_decay: 5000
+  target_update_freq: 1000
 
-# Training schedule
-num_episodes:            1000000
-batch_size:              128
-random_start_episodes:   16384
-
-# Exploration (ε-greedy)
-epsilon_start:           0.30
-epsilon_end:             0.05
-epsilon_decay_episodes:  50000
-
-# RL hyperparameters
-gamma:                   0.99   # discount
-gae_lambda:              0.95   # GAE λ
-
-# Loss coefficients
-policy_coef:             1.0  # weight on policy loss
-value_coef:              1.0    # weight on critic loss
-entropy_coef:            1.0   # weight on entropy bonus
-
-# Learning rates
-actor_lr:                0.1   # separate actor optimizer LR
-critic_lr:               0.1   # separate critic optimizer LR
-
-# Gradient clipping
-max_grad_norm:           5.0
-
-# Environment
-grid_rows:               6
-grid_cols:               7
-connect_k:               4
-max_steps_per_episode:   42
-
-# (If using transformer:)
-transformer:
-  d_model: 64
-  nhead:   4
-  layers:  3
-  dropout: 0.1
+eval_opponents:
+  - type: random
+  - type: minimax
+    depth: 2

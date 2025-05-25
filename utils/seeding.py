@@ -2,8 +2,7 @@ import random
 import numpy as np
 import torch
 
-def seed_all(seed: int) -> None:
-    """Set random seeds for reproducibility across modules."""
+def seed_all(seed):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
