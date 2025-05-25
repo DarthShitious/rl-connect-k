@@ -1,31 +1,55 @@
-# Grid & game
-grid_rows: 6
-grid_cols: 7
-connect_k: 4
-max_steps_per_episode: 100
-
-# Training
-num_episodes: 64000
-batch_size: 512
-gamma: 0.99
-gae_lambda: 0.95
-entropy_coef: 0.01
-value_coef: 0.5
-learning_rate: 0.0003
+# ===================================================================
+# configs/mlp01.yaml
+# ===================================================================
+# General settings
 seed: 42
-opponent_update_interval: 8000
-
-# Model architecture
-actor_layers: [128, 128]
-
-# Checkpoint & logging
-save_interval: 1000
-log_interval: 10
-results_dir: "results"
-
-# Evaluation
-eval_episodes: 
-checkpoint: "/home/tabbott/Software/rl_connect_n_two_agent/results/20250523-215110/checkpoint_13400.pt"
-
-# Device
 use_cuda: true
+
+# Output & logging
+results_dir: "results"
+log_interval: 128
+save_interval: 1024
+eval_episodes: 100
+
+# Model
+model_type: "mlp"              # "mlp" or "transformer"
+actor_layers: [128, 128]       # hidden dims for MLP policy/value trunk
+
+# Training schedule
+num_episodes:            1000000
+batch_size:              128
+random_start_episodes:   16384
+
+# Exploration (ε-greedy)
+epsilon_start:           0.30
+epsilon_end:             0.05
+epsilon_decay_episodes:  50000
+
+# RL hyperparameters
+gamma:                   0.99   # discount
+gae_lambda:              0.95   # GAE λ
+
+# Loss coefficients
+policy_coef:             1.0  # weight on policy loss
+value_coef:              1.0    # weight on critic loss
+entropy_coef:            1.0   # weight on entropy bonus
+
+# Learning rates
+actor_lr:                0.1   # separate actor optimizer LR
+critic_lr:               0.1   # separate critic optimizer LR
+
+# Gradient clipping
+max_grad_norm:           5.0
+
+# Environment
+grid_rows:               6
+grid_cols:               7
+connect_k:               4
+max_steps_per_episode:   42
+
+# (If using transformer:)
+transformer:
+  d_model: 64
+  nhead:   4
+  layers:  3
+  dropout: 0.1
